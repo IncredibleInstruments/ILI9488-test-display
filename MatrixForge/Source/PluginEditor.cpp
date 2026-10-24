@@ -4,7 +4,7 @@ using namespace mf;
 
 MainPanel::MainPanel (MatrixForgeProcessor& p)
     : processor (p),
-      matrix (p.apvts),
+      matrix (p.apvts, [&p] (int source) { return p.getModSourceValue (source); }),
       seq (p.apvts),
       keyboard (p.keyboardState, juce::MidiKeyboardComponent::horizontalKeyboard)
 {

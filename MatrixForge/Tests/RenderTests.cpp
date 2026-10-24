@@ -3,6 +3,7 @@
 
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include "PresetAnalysis.h"
 #include <juce_events/juce_events.h>
 #include <iostream>
 
@@ -56,6 +57,25 @@ int main (int argc, char** argv)
     MatrixForgeProcessor proc;
     proc.setPlayConfigDetails (0, 2, 48000.0, 512);
     proc.prepareToPlay (48000.0, 512);
+
+    // Analysis mode: MatrixForgeTests --features prints a CSV fingerprint per preset
+    if (argc > 1 && juce::String (argv[1]) == "--features")
+    {
+        std::cout << "index,name";
+        for (int k = 0; k < analysis::numFeatures; ++k)
+            std::cout << "," << analysis::featureName (k);
+        std::cout << "\n";
+        for (int i = 0; i < mf::kNumFactoryPresets; ++i)
+        {
+            const auto bank = mf::getBankNames()[i / mf::kPresetsPerBank];
+            const auto f = analysis::analysePreset (proc, i, bank == "Bass" || bank == "Percussion" ? 36 : 60);
+            std::cout << i << ",\"" << mf::getFactoryPresetDisplayName (i) << "\"";
+            for (float x : f)
+                std::cout << "," << x;
+            std::cout << "\n";
+        }
+        return 0;
+    }
 
     // Diagnostic mode: MatrixForgeTests <presetIndex> prints the peak of every 0.1 s
     if (argc > 1)

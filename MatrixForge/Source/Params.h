@@ -14,7 +14,7 @@ enum ModSource { srcEnv1, srcEnv2, srcEnv3, srcLfo1, srcLfo2, srcVco3, srcVeloci
 enum ModDest
 {
     dVco1Pitch, dVco1PW, dVco1Metal, dVco2Pitch, dVco2PW, dVco2Metal, dVco3Pitch, dUltra,
-    dNoise, dStCutoff, dStReso, dLdCutoff, dLdReso, dBrute, dVca, dPan
+    dCutoff, dStCutoff, dStReso, dLdCutoff, dLdReso, dBrute, dVca, dPan
 };
 
 enum VoiceMode { modeMono, modeLegato, modePara, modePoly };
@@ -67,6 +67,15 @@ const juce::StringArray& modSourceNames();
 const juce::StringArray& modSourceShortNames();
 const juce::StringArray& modDestNames();
 const juce::StringArray& modDestShortNames();
+const juce::StringArray& modDestGroupNames();
+int modDestGroup (int dest);
+
+inline bool isPitchDest (int dest) { return dest == dVco1Pitch || dest == dVco2Pitch || dest == dVco3Pitch; }
+// Pitch routes use a squared curve: fine control for vibrato, up to +-4 octaves at full scale.
+inline float pitchAmountToSemis (float amount) { return amount * std::abs (amount) * 48.0f; }
+inline float semisToPitchAmount (float semis) { return std::copysign (std::sqrt (std::abs (semis) / 48.0f), semis); }
+constexpr float kCutoffModOctaves = 5.0f;
+juce::String describeModAmount (int dest, float amount);
 const juce::StringArray& divisionNames();
 double divisionBeats (int index);
 

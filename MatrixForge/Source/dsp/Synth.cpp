@@ -136,14 +136,15 @@ void Voice::render (float* left, float* right, int numSamples, const VoiceContex
         const float base = currentNote + ctx.bendSemis;
 
         // VCO3 (computed first: it can frequency-modulate VCO1)
-        const float f3 = vco3Lfo ? p.vco3Rate * std::exp2 (mod[dVco3Pitch] * 4.0f)
-                                 : midiToHz (base + p.vco3Coarse + p.vco3Fine * 0.01f + drift[2] * driftDepth + mod[dVco3Pitch] * 24.0f);
+        // Pitch destinations arrive already converted to semitones
+        const float f3 = vco3Lfo ? p.vco3Rate * std::exp2 (mod[dVco3Pitch] * (1.0f / 12.0f))
+                                 : midiToHz (base + p.vco3Coarse + p.vco3Fine * 0.01f + drift[2] * driftDepth + mod[dVco3Pitch]);
         const float o3 = vco3.process (f3, sr, vco3Wave);
         vco3Last = o3;
 
-        float f1 = midiToHz (base + p.vco1Coarse + p.vco1Fine * 0.01f + drift[0] * driftDepth + mod[dVco1Pitch] * 24.0f);
+        float f1 = midiToHz (base + p.vco1Coarse + p.vco1Fine * 0.01f + drift[0] * driftDepth + mod[dVco1Pitch]);
         f1 *= std::max (0.0f, 1.0f + p.vco1FM * o3 * 2.0f);
-        const float f2 = midiToHz (base + p.vco2Coarse + p.vco2Fine * 0.01f + drift[1] * driftDepth + mod[dVco2Pitch] * 24.0f);
+        const float f2 = midiToHz (base + p.vco2Coarse + p.vco2Fine * 0.01f + drift[1] * driftDepth + mod[dVco2Pitch]);
 
         const float ultra = std::clamp (mod[dUltra], -1.0f, 1.0f);
         VcoShape s1 { p.vco1Saw, p.vco1Square, p.vco1Tri, p.vco1Sub, p.vco1PW + mod[dVco1PW] * 0.45f,
@@ -153,7 +154,7 @@ void Voice::render (float* left, float* right, int numSamples, const VoiceContex
 
         const float o1 = vco1.process (f1, sr, s1, false);
         const float o2 = vco2.process (f2, sr, s2, sync && vco1.wrapped);
-        const float on = noise.process (p.noiseColor) * std::clamp (1.0f + mod[dNoise], 0.0f, 2.0f);
+        const float on = noise.process (p.noiseColor);
 
         // Mixer with per-source routing to the two filters
         const float levels[4] { o1 * p.mixVco1, o2 * p.mixVco2, o3 * p.mixVco3, on * p.mixNoise };
@@ -170,8 +171,8 @@ void Voice::render (float* left, float* right, int numSamples, const VoiceContex
         const float key = (currentNote - 60.0f) / 12.0f;
         stCutSmooth += (p.stCutoff - stCutSmooth) * cutSmoothCoef;
         ldCutSmooth += (p.ldCutoff - ldCutSmooth) * cutSmoothCoef;
-        const float stCut = stCutSmooth * std::exp2 (key * p.stKeyTrack + p.stEnvAmt * e1 * 7.0f + mod[dStCutoff] * 5.0f);
-        const float ldCut = ldCutSmooth * std::exp2 (key * p.ldKeyTrack + p.ldEnvAmt * e1 * 7.0f + mod[dLdCutoff] * 5.0f);
+        const float stCut = stCutSmooth * std::exp2 (key * p.stKeyTrack + p.stEnvAmt * e1 * 7.0f + (mod[dStCutoff] + mod[dCutoff]) * kCutoffModOctaves);
+        const float ldCut = ldCutSmooth * std::exp2 (key * p.ldKeyTrack + p.ldEnvAmt * e1 * 7.0f + (mod[dLdCutoff] + mod[dCutoff]) * kCutoffModOctaves);
 
         const float st = steiner.process (stBus, stCut, p.stReso + mod[dStReso], p.stDrive,
                                           std::clamp (p.stBrute + mod[dBrute], 0.0f, 1.0f), stMode, sr);
@@ -195,6 +196,8 @@ void Voice::render (float* left, float* right, int numSamples, const VoiceContex
             right[i] += out;
         }
     }
+
+    std::copy (src, src + kNumModSources, sources);
 
     if (env2.isIdle())
         kill();
@@ -403,7 +406,7 @@ void Synth::render (juce::AudioBuffer<float>& buffer, int start, int num, const 
         for (int d = 0; d < kNumModDests; ++d)
             if (std::abs (p.matrix[s][d]) > 1.0e-4f)
             {
-                routes[numRoutes++] = { s, d, p.matrix[s][d] };
+                routes[numRoutes++] = { s, d, isPitchDest (d) ? pitchAmountToSemis (p.matrix[s][d]) : p.matrix[s][d] };
                 ctx.panModulated = ctx.panModulated || d == dPan;
             }
     ctx.routes = routes;
@@ -427,6 +430,20 @@ void Synth::render (juce::AudioBuffer<float>& buffer, int start, int num, const 
             v.render (left + start, right + start, n, ctx);
         start += n;
         num -= n;
+    }
+
+    const Voice* newest = nullptr;
+    for (auto& v : voices)
+        if (v.isActive() && (newest == nullptr || v.age > newest->age))
+            newest = &v;
+    for (int s = 0; s < kNumModSources; ++s)
+    {
+        float value = newest != nullptr ? newest->lastSources()[s] : 0.0f;
+        if (s == srcLfo1) value = lfo1Buf[0];
+        else if (s == srcLfo2) value = lfo2Buf[0];
+        else if (s == srcWheel) value = wheel;
+        else if (s == srcAftertouch) value = aftertouch;
+        uiSources[s].store (value, std::memory_order_relaxed);
     }
 }
 } // namespace mf

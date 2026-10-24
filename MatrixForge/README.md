@@ -17,17 +17,21 @@ MatrixForge is a VST3 synthesizer (with a standalone app) for Windows. Its signa
 | **Filter config** | Parallel, or Series (Steiner into Ladder). |
 | **Envelopes** | Env 1 for the filters, Env 2 for the VCA, and Env 3 for modulation (DADSR). Analog-style exponential curves. Faders. |
 | **LFO 1 & 2** | 7 waveforms, including S&H and smooth random. Tempo sync and key retrigger. |
-| **Modulation matrix** | 10 sources × 16 destinations, each a bipolar amount (160 routes). |
+| **Modulation matrix** | 10 sources × 16 destinations, each a bipolar amount (160 routes). Destinations are grouped by section and include **Both Filter Cutoffs**. Pitch routes use a curve, so small amounts give vibrato and the full amount gives ±4 octaves. |
 | **Arp / Sequencer** | Arpeggiator: Up, Down, Up/Down, Random or As Played, over 1–4 octaves. 16-step transposing sequencer with gates, length and swing. Both follow the host tempo. |
 | **Voices** | Mono, Legato, Para 3 or Poly 8. Glide, bend range and analog drift. |
 | **Effects** | Chorus or flanger, then a stereo/ping-pong delay (free or synced), then a reverb. |
-| **Presets** | **256 factory presets** in 16 banks (A–P): Bass, Lead, Pad, Keys, Brass, Strings, Pluck, Arp, Sequence, Sync, Ultrasaw, Metalizer, Drone, Percussion, FX and Templates. The host sees them as programs. You can save and load your own presets (`Documents\MatrixForge\Presets\*.mfpreset`). |
+| **Presets** | **256 factory presets** in 16 banks (A–P). Almost every preset uses the matrix for movement and gives the mod wheel and aftertouch a job. Banks:: Bass, Lead, Pad, Keys, Brass, Strings, Pluck, Arp, Sequence, Sync, Ultrasaw, Metalizer, Drone, Percussion, FX and Templates. The host sees them as programs. You can save and load your own presets (`Documents\MatrixForge\Presets\*.mfpreset`). |
 | **Resizable UI** | Drag the corner, or use **SIZE** (50 %–200 %). The aspect ratio stays fixed and everything is vector-drawn, so it stays sharp on high-DPI screens. The size you pick is remembered for each project. |
 
 ### Using the panel
 
 - **Knobs and faders:** drag to change. The display shows the parameter name and value. Double-click to reset.
-- **Matrix:** drag a cell up or down. Hold **Shift** for fine control. Double-click to clear it. Blue means positive, orange means negative.
+- **Matrix:** drag a cell up or down. Hold **Shift** for fine control. Double-click to clear it. Right-click for preset amounts and for clearing a row, a column or the whole matrix. Blue means positive, orange means negative.
+  - The display shows each route in real units, such as `+7.0 st` or `+1.50 oct`.
+  - Each source name has a live meter, and a cell glows while it is moving the sound.
+  - If a route can't be heard with the current patch, an orange note under the grid says why. For example, pulse width does nothing while that oscillator's square level is 0.
+  - Wheel and aftertouch rows only act when you move the wheel or press the keys harder.
 - **Sequencer:** drag a lane to set its transpose. Click the strip under a lane to switch that step's gate. Hold a key to play the sequence from that note.
 - The on-screen keyboard plays the synth, which helps when you use the standalone app without a MIDI controller.
 - MIDI: mod wheel (CC1), aftertouch, pitch bend and sustain pedal (CC64) all work.
@@ -60,7 +64,7 @@ CMake downloads JUCE 8.0.4 on its own the first time. The first build takes abou
 
 ## Tests
 
-`MatrixForgeTests` renders every factory preset offline. It checks that the audio is finite, audible and not clipping. It also tests odd block sizes and sample rates, saving and restoring plug-in state, and saving and loading user presets.
+`MatrixForgeTests` renders every factory preset offline. It checks that the audio is finite, audible and not clipping. It also tests odd block sizes and sample rates, saving and restoring plug-in state, and saving and loading user presets. `MatrixForgeTests --features` prints a CSV fingerprint for each preset: brightness, timbre and level movement, envelope shape, stereo width, noisiness and pitch movement. It's used to check that the presets in a bank really differ from each other.
 
 ```
 build\MatrixForgeTests_artefacts\Release\MatrixForgeTests.exe

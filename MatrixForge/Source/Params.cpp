@@ -52,7 +52,7 @@ const juce::StringArray& modSourceNames()
 
 const juce::StringArray& modSourceShortNames()
 {
-    static const juce::StringArray names { "ENV1", "ENV2", "ENV3", "LFO1", "LFO2", "VCO3", "VEL", "WHEEL", "AFTER", "KEY" };
+    static const juce::StringArray names { "ENV 1", "ENV 2", "ENV 3", "LFO 1", "LFO 2", "VCO 3", "VELO", "WHEEL", "AFTER", "KEY" };
     return names;
 }
 
@@ -60,16 +60,47 @@ const juce::StringArray& modDestNames()
 {
     static const juce::StringArray names { "VCO1 Pitch", "VCO1 Pulse Width", "VCO1 Metalizer", "VCO2 Pitch",
                                            "VCO2 Pulse Width", "VCO2 Metalizer", "VCO3 Pitch", "Ultrasaw",
-                                           "Noise Level", "Steiner Cutoff", "Steiner Resonance", "Ladder Cutoff",
+                                           "Both Filter Cutoffs", "Steiner Cutoff", "Steiner Resonance", "Ladder Cutoff",
                                            "Ladder Resonance", "Brute Factor", "VCA Level", "Pan" };
     return names;
 }
 
 const juce::StringArray& modDestShortNames()
 {
-    static const juce::StringArray names { "P1", "PW1", "MT1", "P2", "PW2", "MT2", "P3", "ULT",
-                                           "NOI", "STF", "STR", "LDF", "LDR", "BRT", "VCA", "PAN" };
+    static const juce::StringArray names { "PITCH", "PW", "FOLD", "PITCH", "PW", "FOLD", "PITCH", "ULTRA",
+                                           "BOTH", "STNR", "RESO", "LADR", "RESO", "BRUTE", "LEVEL", "PAN" };
     return names;
+}
+
+const juce::StringArray& modDestGroupNames()
+{
+    static const juce::StringArray names { "VCO 1", "VCO 2", "VCO3", "SAW", "FILTER CUTOFF / RESO", "AMP" };
+    return names;
+}
+
+int modDestGroup (int dest)
+{
+    static const int groups[kNumModDests] { 0, 0, 0, 1, 1, 1, 2, 3, 4, 4, 4, 4, 4, 4, 5, 5 };
+    return groups[juce::jlimit (0, kNumModDests - 1, dest)];
+}
+
+juce::String describeModAmount (int dest, float a)
+{
+    auto sign = [] (float v) { return v > 0.0f ? juce::String ("+") : juce::String(); };
+    if (isPitchDest (dest))
+    {
+        const float st = pitchAmountToSemis (a);
+        return sign (st) + juce::String (st, std::abs (st) < 1.0f ? 2 : 1) + " st";
+    }
+    switch (dest)
+    {
+        case dCutoff: case dStCutoff: case dLdCutoff:
+            return sign (a) + juce::String (a * kCutoffModOctaves, 2) + " oct";
+        case dVco1PW: case dVco2PW:
+            return sign (a) + juce::String (juce::roundToInt (a * 45.0f)) + " % width";
+        default:
+            return sign (a) + juce::String (juce::roundToInt (a * 100.0f)) + " %";
+    }
 }
 
 const juce::StringArray& divisionNames()
@@ -245,7 +276,8 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     // Modulation matrix
     for (int s = 0; s < kNumModSources; ++s)
         for (int d = 0; d < kNumModDests; ++d)
-            L.f (matrixId (s, d), modSourceShortNames()[s] + " > " + modDestNames()[d], bip, 0.0f, bipolar);
+            L.f (matrixId (s, d), modSourceNames()[s] + " > " + modDestNames()[d], bip, 0.0f,
+                 [d] (float v, int) { return describeModAmount (d, v); });
 
     // Arpeggiator / step sequencer
     L.c ("asMode", "Arp/Seq Mode", { "Off", "Arp", "Seq" }, 0);

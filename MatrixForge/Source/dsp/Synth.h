@@ -4,6 +4,7 @@
 #include "../Params.h"
 
 #include <juce_audio_basics/juce_audio_basics.h>
+#include <atomic>
 #include <vector>
 
 namespace mf
@@ -41,6 +42,7 @@ public:
     bool isActive() const noexcept { return active; }
 
     void render (float* left, float* right, int numSamples, const VoiceContext& ctx);
+    const float* lastSources() const noexcept { return sources; }
 
     int note = -1;
     bool held = false;       // key physically down
@@ -64,6 +66,7 @@ private:
     Rng rng;
 
     float vco3Last = 0.0f;
+    float sources[kNumModSources] {};
     float stCutSmooth = 1000.0f, ldCutSmooth = 1000.0f;
     float drift[3] {}, driftTarget[3] {};
     int driftCounter = 0;
@@ -81,6 +84,9 @@ public:
     void render (juce::AudioBuffer<float>& buffer, int start, int num, const Snapshot& p);
     void allNotesOff();
     int numActiveVoices() const;
+
+    // Latest modulation source values of the newest voice, for the matrix display
+    std::atomic<float> uiSources[kNumModSources] {};
 
 private:
     void noteOn (int note, float vel, const Snapshot& p);

@@ -46,6 +46,7 @@ public:
 
     juce::String getCurrentPresetName() const { return currentPresetName; }
     int getArpSeqStep() const { return arpSeq.currentStep.load(); }
+    float getModSourceValue (int source) const { return synth.uiSources[source].load (std::memory_order_relaxed); }
 
     juce::AudioProcessorValueTreeState apvts;
     juce::MidiKeyboardState keyboardState;
