@@ -43,14 +43,14 @@ Every push runs the **MatrixForge Windows build** workflow on a Windows runner. 
 
 ### Option B: build it yourself on Windows 11
 
-1. Install **Visual Studio 2022** (Community is fine) with the *Desktop development with C++* workload. It includes CMake.
+1. Install **Visual Studio 2022 or newer** (Community is fine) with the *Desktop development with C++* workload. It includes CMake.
 2. Install **Git**.
-3. In a *Developer PowerShell for VS 2022*:
+3. In a *Developer PowerShell for VS*:
 
 ```powershell
 git clone <this repo>
 cd <repo>\MatrixForge
-cmake -B build -G "Visual Studio 17 2022" -A x64
+cmake -B build -A x64
 cmake --build build --config Release
 ```
 
