@@ -7,6 +7,9 @@ on:
       - ".github/workflows/matrixforge-windows.yml"
   workflow_dispatch:
 
+permissions:
+  contents: write # needed to publish the installer release
+
 jobs:
   windows:
     runs-on: windows-latest
@@ -40,6 +43,38 @@ jobs:
         with:
           name: MatrixForge-Windows-x64
           path: MatrixForge/dist/MatrixForge-Windows-x64
+
+      - name: Build one-click installer
+        shell: pwsh
+        working-directory: MatrixForge
+        run: |
+          $version = (Select-String -Path CMakeLists.txt -Pattern 'project\(MatrixForge VERSION (\d+\.\d+\.\d+)').Matches[0].Groups[1].Value
+          $iscc = (Get-Command iscc.exe -ErrorAction SilentlyContinue).Source
+          if (-not $iscc) { $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" }
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup -y --no-progress
+            $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          }
+          & $iscc "/DAppVersion=$version" installer\MatrixForge.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "MF_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MatrixForge-Setup
+          path: MatrixForge/dist/MatrixForge-Setup.exe
+
+      # Publish the installer under a fixed tag so it always has the same download link
+      - name: Publish installer as a GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete matrixforge-latest --yes --cleanup-tag 2>$null
+          gh release create matrixforge-latest MatrixForge/dist/MatrixForge-Setup.exe `
+            --target $env:GITHUB_SHA `
+            --title "MatrixForge $env:MF_VERSION (latest build)" `
+            --notes "One-click Windows installer. Run MatrixForge-Setup.exe: it installs the VST3 plug-in into C:\Program Files\Common Files\VST3 and the standalone app into Program Files, and adds an uninstaller. Built from $env:GITHUB_SHA."
 
   linux:
     runs-on: ubuntu-24.04

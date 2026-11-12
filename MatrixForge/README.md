@@ -38,14 +38,27 @@ MatrixForge is a VST3 synthesizer (with a standalone app) for Windows. Its signa
 
 ## Getting the Windows build
 
-### Option A: download from GitHub Actions (no tools needed)
+### Option A: one-click installer (recommended)
 
-Every push runs the **MatrixForge Windows build** workflow on a Windows runner. Open the repository's **Actions** tab, pick the latest run and download the **MatrixForge-Windows-x64** artifact. It contains:
+Download **MatrixForge-Setup.exe** from the repository's **Releases** page (release *matrixforge-latest*) and run it. It:
 
-- `MatrixForge.vst3`: copy this folder to `C:\Program Files\Common Files\VST3\`, then rescan plug-ins in your DAW.
-- `MatrixForge.exe`: the standalone version. Set your audio and MIDI devices under *Options*.
+- installs the VST3 plug-in into `C:\Program Files\Common Files\VST3\`, where every Windows DAW looks;
+- installs the standalone app into `C:\Program Files\MatrixForge` and adds it to the Start menu, with an optional desktop shortcut;
+- registers an uninstaller under *Settings → Apps*.
 
-### Option B: build it yourself on Windows 11
+Close your DAW before installing, then rescan plug-ins if the DAW doesn't pick it up on its own. Running a newer installer upgrades the existing installation. Your saved presets in `Documents\MatrixForge` are never touched.
+
+The installer isn't code-signed, so Windows SmartScreen may warn you the first time. Click **More info → Run anyway**.
+
+Every push to the branch rebuilds the installer and replaces that release. The same file is also attached to each run on the **Actions** tab as the **MatrixForge-Setup** artifact.
+
+### Option B: loose files from GitHub Actions
+
+The **MatrixForge-Windows-x64** artifact on each Actions run has the raw files: copy `MatrixForge.vst3` to `C:\Program Files\Common Files\VST3\`. `MatrixForge.exe` is the standalone app.
+
+To build the installer yourself after Option C, install [Inno Setup 6](https://jrsoftware.org/isinfo.php) and run `iscc /DAppVersion=1.1.0 installer\MatrixForge.iss`. The installer is written to `dist\MatrixForge-Setup.exe`.
+
+### Option C: build it yourself on Windows 11
 
 1. Install **Visual Studio 2022 or newer** (Community is fine) with the *Desktop development with C++* workload. It includes CMake.
 2. Install **Git**.
